@@ -21,6 +21,10 @@ class KVCache:
     def __init__(self, num_layers: int, num_kv_heads: int, head_dim: int,
                  max_seq_len: int = 2048):
         # TODO: 初始化
+        """
+        初始化KV Cache
+        
+        """
         # self.cache_k[layer] 是一个 list，每个元素是 (batch, num_kv_heads, 1, head_dim)
         pass
 

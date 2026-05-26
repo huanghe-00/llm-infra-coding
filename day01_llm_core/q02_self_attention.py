@@ -36,6 +36,8 @@ class CausalSelfAttention:
         # TODO: 在最后一个维度做 softmax
         # 数组的外层 → 内层
         # (batch) → (num_heads) → (q_len) → (head_dim)
+        if x.shape[-1] == 0: # 如果最后一维大小为 0，直接返回原数组（空张量）， 专门处理
+            return x
         max_x = np.max(x, axis = -1, keepdims = True)
         e_x = np.exp(x - max_x)
         sum_e = np.sum(e_x, axis = -1, keepdims = True)
@@ -61,20 +63,21 @@ class CausalSelfAttention:
         V = np.matmul(x, self.w_v)
 
         # 2. 拆成多头并转置为 (batch, num_heads, seq, head_dim)
-        Q.reshape(batch, seq_len, self.nums_heads, self.head_dim)
-        K.reshape(batch, seq_len, self.nums_heads, self.head_dim)
-        V.reshape(batch, seq_len, self.nums_heads, self.head_dim)
+        Q = Q.reshape(batch, seq_len, self.num_heads, self.head_dim)
+        K = K.reshape(batch, seq_len, self.num_heads, self.head_dim)
+        V = V.reshape(batch, seq_len, self.num_heads, self.head_dim)
 
-        Q.transpose(Q, (0, 2, 1, 3)) # 交换数组的维度顺序
-        K.transpose(K, (0, 2, 1, 3)) # (batch, num_heads, seq_q, head_dim)
-        V.transpose(V, (0, 2, 1, 3))
+        Q = np.transpose(Q, (0, 2, 1, 3)) # 交换数组的维度顺序
+        K = np.transpose(K, (0, 2, 1, 3)) # (batch, num_heads, seq_q, head_dim)
+        V = np.transpose(V, (0, 2, 1, 3))
 
         # 3. 处理KV缓存
+        past_len = 0
         if past_kv is not None:
             past_K, past_V = past_kv
             # 沿着seq维度拼接
-            K = np.concatencate([past_K, K], axis = 2)
-            V = np.concatencate([past_V, V], axis = 2)
+            K = np.concatenate([past_K, K], axis = 2)
+            V = np.concatenate([past_V, V], axis = 2)
             past_len = K.shape[2]
         new_k = K
         new_v = V
@@ -83,11 +86,55 @@ class CausalSelfAttention:
         K_trans = np.transpose(K, (0, 1, 3, 2)) # (batch, num_heads, head_dim, kv_len)
         scores = np.matmul(Q, K_trans) / np.sqrt(self.head_dim) # (batch, num_heads, q_len, kv_len)
         
-        # 5. 因果掩码
-        q_len = seq_len
-        kv_len = K.shape[2]
-        
+        # 5. 因果掩码 (Causal Mask)
+        # 目的：确保每个查询位置只能注意到“当前及之前”的键位置（含自身），不能看到未来。
+        # 逻辑：
+        #   - 当前查询索引 i ∈ [0, q_len)
+        #   - 所有键索引   j ∈ [0, kv_len)    (kv_len = past_len + q_len)
+        #   - 若 past_len > 0，则过去的键（索引 0..past_len-1）对任何 i 都可见
+        #   - 对于新生成的键（索引 past_len .. kv_len-1），查询 i 只能看到 j <= past_len + i 的位置
+        #   - 即：j > past_len + i 的位置必须屏蔽
+        #
+        # 下面的代码就是生成一个 (q_len, kv_len) 的布尔掩码矩阵，
+        # 其中 True 表示“未来”位置（需要屏蔽），False 表示“历史或当前”位置（允许注意）。
+        q_len = seq_len     # 当前查询序列长度
+        kv_len = K.shape[2]     # 总的键序列长度 = past_len + q_len
 
+        # np.arange(q_len) 生成 [0, 1, 2, ..., q_len-1]
+        # 通过 [:, None] 在列方向增加一个维度，变成列向量，形状 (q_len, 1)
+        row_idx = np.arange(q_len)[:, None]  # 代表每个查询的行索引
+
+        # np.arange(kv_len) 生成 [0, 1, ..., kv_len-1]
+        # 通过 [None, :] 在行方向增加一个维度，变成行向量，形状 (1, kv_len)
+        col_idx = np.arange(kv_len)[None, :] # 代表每个键的列索引
+
+        # 利用 NumPy 广播，比较生成 (q_len, kv_len) 的布尔矩阵
+        # 条件：j > past_len + i
+        #   - 当 j <= past_len + i 时，该位置为 False（可见）
+        #   - 当 j > past_len + i 时，该位置为 True（未来，需屏蔽）
+        mask = col_idx > (past_len + row_idx)
+
+        # 将布尔 mask 转为浮点掩码：True 的位置乘以 -1e9，False 的位置乘以 0
+        # -1e9 是一个极小的负数，在 softmax 中指数值约等于 0，从而实现屏蔽
+        # 加到 scores 上，被屏蔽位置的分数变成极小值，其他位置不变
+        scores = scores + mask * (-1e9)
+
+        # 6. Softmax（在最后一个维度 kv_len 上做）
+        attn_weights = self._softmax(scores)
+
+        # 7. 加权求和
+        out = np.matmul(attn_weights, V)
+
+        # 8. 合并多头
+        # 当前 out 形状: (batch, num_heads, q_len, head_dim)
+        # 我们需要恢复成 (batch, q_len, dim)，即把多头合并回一个维度
+        out = np.transpose(out, (0, 2, 1, 3))
+        out = out.reshape(batch, q_len, self.dim)
+
+        # 9. 输出投影
+        out = np.matmul(out, self.w_o)
+
+        return out, (new_k, new_v)
 
 class TestCausalSelfAttention:
     def test_without_pastkv(self):
