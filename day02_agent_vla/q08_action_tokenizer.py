@@ -22,16 +22,48 @@ class ActionTokenizer:
     def __init__(self, action_dim: int, bins_per_dim: int,
                  min_val: float = -1.0, max_val: float = 1.0):
         # TODO: 初始化参数，计算 bin_size
-        pass
+        self._action_dim = action_dim          # 动作维度，类似 C++ private 成员
+        self._bins = bins_per_dim              # 每维分桶数量，推荐 2 的幂
+        self._min_val = min_val                # 连续值下界
+        self._max_val = max_val                # 连续值上界
+
+        BIN_COUNT = self._bins                 # 局部常量，避免 magic number
+        RANGE = self._max_val - self._min_val  # 连续值范围
+        self._bin_size = RANGE / BIN_COUNT     # 单 bin 宽度，单位：连续值单位/bin
 
     def encode(self, action: List[float]) -> List[int]:
         # TODO: clip -> bin -> int
-        pass
+        """将连续动作序列 clip 并离散化为 token 序列"""
+        tokens: List[int] = []
+        # 边界保护常量
+        BIN_MAX_INDEX = self._bins - 1
+
+        for value in action:
+            # 1. Clip到有效区间  设计原因 硬实时系统要“吞掉”野值，而不是“炸掉”流程。
+            clipped = max(self._min_val, min(value, self._max_val))
+        
+            # 2. 计算Bin索引--量化
+            index = int((clipped - self._min_val) / self._bin_size)
+
+            # 3. 边界保护
+            safe_index = min(index, BIN_MAX_INDEX)
+
+            tokens.append(safe_index)
+        
+        return tokens
 
     def decode(self, tokens: List[int]) -> List[float]:
         # TODO: int -> bin 中心值
-        pass
+        """将 token 序列还原为连续值（取 bin 中心）"""
+        actions: List[float] = []
 
+        CENTER_OFFSET = 0.5
+
+        for token in tokens:
+            center = self._min_val + (token + CENTER_OFFSET) * self._bin_size
+            actions.append(center)
+
+        return actions
 
 class TestActionTokenizer:
     def test_encode_decode_roundtrip(self):

@@ -23,24 +23,72 @@ class KVCache:
         # TODO: 初始化
         """
         初始化KV Cache
-        
+        参数：
+            num_layers
+            num_kv_heads
+            head_dim
+            max_seq_len
         """
         # self.cache_k[layer] 是一个 list，每个元素是 (batch, num_kv_heads, 1, head_dim)
-        pass
+        self.numlayers = num_layers
+        self.num_kv_heads = num_kv_heads
+        self.head_dim = head_dim
+        self.max_seq_len = max_seq_len
+        
+        self.cache_k = [[] for _ in range(num_layers)]
+        self.cache_v = [[] for _ in range(num_layers)]
+
+        [[] for _ in range(num_layers)]
 
     def append(self, layer_idx: int, new_k: np.ndarray, new_v: np.ndarray):
         # TODO: 追加 K/V，检查长度是否超过 max_seq_len
-        pass
+        """
+        每调用一次 append, 就在该层的列表末尾添加一个形状为 (batch, num_kv_heads, 1, head_dim) 的张量，其中第 2 维长度为 1, 代表“一个时间步”。
+        """
+        k_cache = self.cache_k[layer_idx]
+        if len(k_cache) >= self.max_seq_len:
+            raise RuntimeError(f"Error, k_cache len exceeded")
+        self.cache_k[layer_idx].append(new_k)
+        self.cache_v[layer_idx].append(new_v)
 
     def get(self, layer_idx: int):
         # TODO: 将 list 沿 seq_len 维度拼接，返回 (k_cache, v_cache)
         # 形状: (batch, num_kv_heads, seq_len, head_dim)
-        pass
+        """
+        获取指定曾当前的K和V缓存
+        """
+        k_list = self.cache_k[layer_idx]
+        v_list = self.cache_v[layer_idx]
+
+        if not k_list:
+            return (
+                np.empty((0, self.num_kv_heads, 0, self.head_dim)),
+                np.empty((0, self.num_kv_heads, 0, self.head_dim)),
+            )
+        # 将所有 token 的片段合并成一个沿序列长度方向连续的大张量
+        # 形状从 (batch, heads, 1, dim) 变成 (batch, heads, seq_len, dim)。因此必须沿轴 2（时间步维度）拼接
+        k_cache = np.concatenate(k_list, axis = 2)
+        v_cache = np.concatenate(v_list, axis = 2)
+        return k_cache, v_cache
 
     def memory_size(self) -> int:
         # TODO: 计算所有层的 K+V 元素总数
-        pass
-
+        """
+        计算KV Cache当前占用的元素总个数
+        """
+        """
+        把多个可迭代对象（如列表）“拉链式”地配对，返回一个迭代器
+        a = [1, 2, 3]
+        b = ['x', 'y', 'z']
+        list(zip(a, b))   # [(1, 'x'), (2, 'y'), (3, 'z')]
+        """
+        total = 0
+        for layer_k, layer_v in zip(self.cache_k, self.cache_v):
+            for arr in layer_k:
+                total += arr.size
+            for arr in layer_v:
+                total += arr.size
+        return total
 
 class TestKVCache:
     def test_basic_append_and_get(self):
@@ -55,7 +103,7 @@ class TestKVCache:
         assert v_cache.shape == (1, 4, 3, 64)
 
     def test_gqa_kv_head_count(self):
-        """8 个 q head 共享 2 个 kv head，kv head 数保持 2"""
+        """8 个 q head 共享 2 个 kv head, kv head 数保持 2"""
         cache = KVCache(num_layers=1, num_kv_heads=2, head_dim=32)
         k = np.zeros((1, 2, 1, 32))
         v = np.zeros((1, 2, 1, 32))

@@ -16,26 +16,73 @@ C++ 程序员注意：
 
 from typing import List, Tuple
 import pytest
+from enum import Enum
 
+class AgentState(Enum):
+    OBSERVE = 1
+    THINK = 2
+    ACT = 3
+    DONE = 4
 
 class ReActAgent:
+    _SUCCESS_KEYWORDS = ("完成", "success")   # 触发结束的观察关键词
+
     def __init__(self, max_steps: int = 5):
         # TODO: 初始化状态、历史、步数计数器
-        pass
+        self.max_steps = max_steps
+        self.state = AgentState.OBSERVE
+        self.step_count = 0
+        self.thought_history: List[str] = [] # : List[str] 声明 thought_history 期望是一个 列表，且列表中的元素类型都是 字符串（str） = [] 将其初始化为空列表。
 
-    def step(self, observation: str) -> Tuple[str, str]:
+    def mock_llm(self, observation: str) -> Tuple[str, str]:
+        """模拟 LLM 生成动作（私有方法，仅供内部调用）"""
+        if "天气" in observation:
+            return ("search", "查询天气")
+        elif "计算" in observation:
+            return ("calculate", "计算结果")
+        else:
+            return ("search", "通用搜索")
+
+    def step(self, observation: str) -> Tuple[str, str]:  #-> 箭头后面写着函数返回的类型。 Tuple[str, str] 表示该函数返回一个元组（tuple），元组中包含两个元素，每个元素都是字符串类型。
         # TODO: 单步状态转换
         # THINK -> 生成 thought（模拟字符串）
         # ACT -> 生成 action（根据 thought）
         # OBSERVE -> 处理 observation，决定下一步
         # 返回: (action_type, action_input)
         # action_type 可以是 "search", "calculate", "finish", "done"
-        pass
+        
+        # 0. 检测完成条件 （模拟LLM判断任务是否完成）
+        if self.state is AgentState.DONE:
+            return ("done", "任务完成")
+
+        # 1. 步数超出停止
+        self.step_count += 1
+        if self.step_count > self.max_steps:
+            self.state = AgentState.DONE
+            return ("done", "达到最大步数")
+
+        # 2. 检测观察阶段是否包含结束关键词
+        if any(keyword in observation for keyword in self._SUCCESS_KEYWORDS):
+            self.state = AgentState.DONE
+            self.thought_history.append("检测到完成信号，任务结束")
+            return ("finish", "")
+
+        # 3. 思考阶段
+        self.state = AgentState.THINK
+        thought = f"根据观察'{observation}', 决定下一步行动。"
+        self.thought_history.append(thought)
+
+        # 4. 行动决策
+        self.state = AgentState.ACT
+        action_type, action_input = self.mock_llm(observation)
+
+        # 5. 更新状态
+        self._state = AgentState.OBSERVE
+        return (action_type, action_input)
 
     def is_done(self) -> bool:
         # TODO: 返回是否已结束
-        pass
-
+        return self.state == AgentState.DONE
 
 class TestReActAgent:
     def test_basic_loop(self):
