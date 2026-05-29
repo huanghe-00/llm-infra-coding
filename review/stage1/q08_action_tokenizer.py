@@ -22,16 +22,31 @@ class ActionTokenizer:
     def __init__(self, action_dim: int, bins_per_dim: int,
                  min_val: float = -1.0, max_val: float = 1.0):
         # TODO: 初始化参数，计算 bin_size
-
+        self.action_dim = action_dim
+        self.bins_per_dim = bins_per_dim
+        self.max_val = max_val
+        self.min_val = min_val
+        range = max_val - min_val
+        self.bin_size = range / bins_per_dim
 
     def encode(self, action: List[float]) -> List[int]:
         # TODO: clip -> bin -> int
         """将连续动作序列 clip 并离散化为 token 序列"""
-
+        tokens: List[int] = []
+        for value in action:
+            clipped = max(self.min_val, min(self.max_val, value))
+            safe_index = min(int((clipped - self.min_val) / self.bin_size), self.bins_per_dim - 1)  # 主要是浮点数精度的安全保护
+            tokens.append(safe_index)
+        return tokens
 
     def decode(self, tokens: List[int]) -> List[float]:
         # TODO: int -> bin 中心值
         """将 token 序列还原为连续值（取 bin 中心）"""
+        actions: List[float] = []
+        for token in tokens:
+            action = self.min_val + (token + 0.5) * self.bin_size
+            actions.append(action)
+        return actions
 
 
 class TestActionTokenizer:

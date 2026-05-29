@@ -30,13 +30,28 @@ class KVCache:
             max_seq_len
         """
         # self.cache_k[layer] 是一个 list，每个元素是 (batch, num_kv_heads, 1, head_dim)
+        self.num_layers = num_layers
+        self.num_kv_heads = num_kv_heads
+        self.head_dim = head_dim
+        self.max_seq_len = max_seq_len
+        # 为每一层创建一个空列表，用于存放该层的 K 和 V 张量。
+        # 注意是列表管理cache，在get时再组装成np数组
+        self.k_cache = [[] for _ in range(max_seq_len)]
+        self.v_cache = [[] for _ in range(max_seq_len)]
 
 
     def append(self, layer_idx: int, new_k: np.ndarray, new_v: np.ndarray):
         # TODO: 追加 K/V，检查长度是否超过 max_seq_len
         """
         每调用一次 append, 就在该层的列表末尾添加一个形状为 (batch, num_kv_heads, 1, head_dim) 的张量，其中第 2 维长度为 1, 代表“一个时间步”。
+        注意，每次传入的数组结构是 (batch, num_kv_heads, 1, head_dim)
         """
+        k_cache = self.k_cache[layer_idx]
+        if len(k_cache) >= self.max_seq_len:
+            raise RuntimeError(f"长度超出限制")
+        k_cache.append(new_k)
+        v_cache = self.v_cache[layer_idx]
+        v_cache.append(new_v)
 
 
     def get(self, layer_idx: int):
@@ -45,6 +60,16 @@ class KVCache:
         """
         获取指定曾当前的K和V缓存
         """
+        k_list = self.k_cache[layer_idx]
+        v_list = self.v_cache[layer_idx]
+
+        if not k_list:
+            return (np.empty(0, self.num_kv_heads, 0, self.head_dim),
+                    np.empty(0, self.num_kv_heads, 0, self.head_dim),)
+
+        k_cache = np.concatenate(k_list, axis = 2)
+        v_cache = np.concatenate(v_list, axis = 2)
+        return (k_cache, v_cache)
 
 
     def memory_size(self) -> int:
@@ -58,7 +83,13 @@ class KVCache:
         b = ['x', 'y', 'z']
         list(zip(a, b))   # [(1, 'x'), (2, 'y'), (3, 'z')]
         """
-
+        total = 0
+        for k_cache, v_cache in zip(self.k_cache, self.v_cache):
+            for array in k_cache:
+                total += array.size
+            for array in v_cache:
+                total += array.size
+        return total
 
 class TestKVCache:
     def test_basic_append_and_get(self):

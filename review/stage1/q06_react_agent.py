@@ -18,18 +18,21 @@ from typing import List, Tuple
 import pytest
 from enum import Enum
 
-class AgentState(Enum):
-    OBSERVE = 1
-    THINK = 2
-    ACT = 3
-    DONE = 4
+class AgentState:
+    OBSERVE = 0
+    THINK = 1
+    ACT = 2
+    DONE = 3
 
 class ReActAgent:
     _SUCCESS_KEYWORDS = ("完成", "success")   # 触发结束的观察关键词
 
     def __init__(self, max_steps: int = 5):
         # TODO: 初始化状态、历史、步数计数器
-
+        self.max_steps = max_steps
+        self.state = AgentState.OBSERVE
+        self.step_count = 0
+        self.thought_history: List[str] = []
 
     def mock_llm(self, observation: str) -> Tuple[str, str]:
         """模拟 LLM 生成动作（私有方法，仅供内部调用）"""
@@ -47,22 +50,34 @@ class ReActAgent:
         # OBSERVE -> 处理 observation，决定下一步
         # 返回: (action_type, action_input)
         # action_type 可以是 "search", "calculate", "finish", "done"
-        
-        # 0. 检测完成条件 （模拟LLM判断任务是否完成）
 
+        # 0. 检测完成条件 （模拟LLM判断任务是否完成）
+        if self.state is AgentState.DONE:
+            return ("done", "任务完成") 
         # 1. 步数超出停止
+        self.step_count += 1
+        if self.step_count > self.max_steps:
+            self.state = AgentState.DONE
+            return ("done", "超出最大步数")
 
         # 2. 检测观察阶段是否包含结束关键词
-
+        if "完成" in observation or "success" in observation:
+            self.state = AgentState.DONE
+            self.thought_history.append("检测到完成信号，任务结束")
+            return ("done", "任务完成")
 
         # 3. 思考阶段
-
-
+        # OBSERVE->THINK
+        self.state = AgentState.THINK
+        thought = f"根据观察到的现象{observation}, 决定下一步的行动"
+        self.thought_history.append(thought)
         # 4. 行动决策
-
-
+        self.state = AgentState.ACT
+        action_type, action_input = self.mock_llm(observation) 
         # 5. 更新状态
 
+        self.state = AgentState.OBSERVE
+        return (action_type, action_input)
 
     def is_done(self) -> bool:
         # TODO: 返回是否已结束

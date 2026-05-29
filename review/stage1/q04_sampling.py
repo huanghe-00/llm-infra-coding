@@ -18,6 +18,7 @@ C++ 程序员注意：
 import numpy as np
 import pytest
 
+EPS = 1e-9
 
 def sample(logits: np.ndarray, temperature: float = 1.0,
            top_k: int = 0, top_p: float = 1.0) -> int:
@@ -39,6 +40,60 @@ def sample(logits: np.ndarray, temperature: float = 1.0,
     Returns:
         int: 选中的 token id。
     """
+    # 1. 处理温度0情况，注意浮点数的处理方式
+    if temperature < EPS:
+        token_id = int(np.argmax(logits))
+        return token_id
+
+    # 2. 温度缩放 + softmax
+    scaled = logits / temperature
+    l_max = np.max(scaled)
+    e = np.exp(scaled - l_max)
+    e_sum = np.sum(e)
+    probs = e / e_sum
+
+    # 3. 筛选topK
+    if top_k < probs.size and top_k > 0:
+        sorted_indices = np.argsort(probs)
+        top_k_indicies = sorted_indices[-top_k:]  # 升序，取倒数topk个
+        mask = np.zeros_like(probs, dtype=bool)
+        mask[top_k_indicies] = True
+        probs[~mask] = 0.0
+
+        #重新归一化
+        p_sum = np.sum(probs)
+        if p_sum > EPS:
+            probs = probs / p_sum
+        else:
+            return int(np.argmax(logits))
+
+    # 4. 过滤topP  核心函数，cumsum
+    if top_p < 1.0:
+        sorted_idx = np.argsort(probs)[::-1]  # 升序重切片为降序
+        sorted_probs = probs[sorted_idx]
+        cum_probs = np.cumsum(sorted_probs)
+
+        cutoff = int(np.argmax(cum_probs >= top_p))  # 累加和的队列里，找到最右边（最小）的满足大于top_p的idx， 注意这里有效的原因是
+
+        if cutoff == 0 and sorted_probs[0] > top_p:
+            cutoff = 1  # 返回前两个
+
+        keep_indices = sorted_idx[:cutoff + 1]
+        mask = np.zeros_like(probs, dtype=bool)
+        mask[keep_indices] = True
+        probs[~mask] = 0.0
+
+        # 重新归一化
+        p_sum = np.sum(probs)
+        if p_sum > EPS:
+            probs = probs / p_sum
+        else:
+            return int(np.argmax(logits)) 
+
+    choice_token = np.random.choice(len(probs), p = probs)
+    return int(choice_token)
+
+
     # 1. greedy 直接返回 argmax（C++ 工程师：相当于 std::max_element）
 
 

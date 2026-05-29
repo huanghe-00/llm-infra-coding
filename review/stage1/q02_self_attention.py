@@ -35,11 +35,95 @@ class CausalSelfAttention:
     def _softmax(self, x: np.ndarray):
         # TODO: 在最后一个维度做 softmax
         # 数组的外层 → 内层
-        # (batch) → (num_heads) → (q_len) → (head_dim)
+        # (batch) → (seq_len) → (num_heads) → (head_dim)
+        # 公式 softmax_value = (e - max_x) / sum_e
+        if x.shape[-1] == 0:
+            return x
+        x_max = np.max(x, axis = -1, keepdims = True)
+        e = np.exp(x - x_max)
+        x_sum = np.sum(e, axis = -1, keepdims = True)
+        return e / x_sum 
 
 
     def forward(self, x: np.ndarray, past_kv=None): # self：指向类实例自身
         # TODO: 实现完整前向
+        # 1. 计算QKV投影
+        # x 形状: (batch, seq_len, dim)
+        batchNum, seq_len, _ = x.shape
+
+        # QKV形状 (batch, seq_len, dim) -> (batch, seq_len, num_heads, head_dim)
+        Q = np.matmul(x, self.w_q)
+        K = np.matmul(x, self.w_k)
+        V = np.matmul(x, self.w_v)
+
+        # 拆分多头 -> (batch, seq_len, num_heads, head_dim
+        Q = np.reshape(Q, (batchNum, seq_len, self.num_heads, self.head_dim))
+        K = np.reshape(K, (batchNum, seq_len, self.num_heads, self.head_dim))
+        V = np.reshape(V, (batchNum, seq_len, self.num_heads, self.head_dim))
+
+        # 调整seq_len, num_heads列位置 ->  (batch, num_heads, past_seq, head_dim)
+        Q = np.transpose(Q, (0, 2, 1, 3))
+        K = np.transpose(K, (0, 2, 1, 3))
+        V = np.transpose(V, (0, 2, 1, 3))
+
+        # 2. 取KV cache, 拼接
+        past_len = 0
+        if past_kv is not None:
+            past_k, past_v = past_kv
+            past_len = K.shape[2]
+            # 取出KV cache (batch, num_heads, past_seq, head_dim)
+            K = np.concatenate([past_k, K], axis = 2)
+            V = np.concatenate([past_v, V], axis = 2)
+        new_K = K
+        new_V = V
+
+        # 3. 计算注意力 Q @ KT
+        K_trans = np.transpose(K, (0, 1, 3, 2))
+        scores = np.matmul(Q, K_trans) / np.sqrt(self.head_dim)
+
+        # 4. mask矩阵掩码，通过某种方式得到一个掩码矩阵，使得每个token只能看到小于等于自己的注意力，在softmax前
+        q_len = seq_len
+        kv_len = K.shape[2]
+        row_idx = np.arange(q_len)[:, None]
+        col_idx = np.arange(kv_len)[None, :]
+        mask = col_idx > (past_len + row_idx)
+        scores = scores + mask * (-1e9)
+
+        # 5. softmax
+        scores_softmax = self._softmax(scores)
+
+        # 6. @ V
+        attention_weight = np.matmul(scores_softmax, V)
+
+        # 7. 合并多头
+        out = np.transpose(attention_weight, (0, 2, 1, 3))  #  (batch, num_heads, past_seq, head_dim) - >  (batch, past_seq, num_heads, head_dim)
+        out = out.reshape(batchNum, seq_len, self.num_heads * self.head_dim)
+
+        # 8. @ Wo
+        out = np.matmul(out, self.w_o)
+        return out, (new_K, new_V)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         # 1. Q/K/V 投影: x @ w（注意形状转换）
         # 2. reshape 为 (batch, num_heads, seq, head_dim)
         # 3. 如果有 past_kv，沿 seq 维度拼接 K/V
@@ -47,7 +131,6 @@ class CausalSelfAttention:
         # 5. Causal Mask（下三角）n
         # 6. Softmax -> @ V -> reshape -> 输出投影
         # 返回: (output, (new_k, new_v))
-
         # 把元组的前两个值赋给 batch 和 seq_len，第三个值赋给 _（_ 是 Python 惯例，表示“我不关心的值”）
         # 1. Q/K/V投影
         # 如果 a 或 b 是三维及以上的张量，会把最后两个维度当作矩阵，前面的维度当成 batch 维度，进行批量矩阵乘法。
