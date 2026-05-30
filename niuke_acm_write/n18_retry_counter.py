@@ -29,28 +29,58 @@ SUCCESS 2
 """
 import sys
 
-
 def solve():
-    max_retries = int(sys.stdin.readline().strip())
-    line = sys.stdin.readline().strip()
-    events = line.split() if line else []
-
-    retries = 0
-    for e in events:
-        if e == "success":
-            print(f"SUCCESS {retries}")
-            return
-        elif e == "timeout":
-            print(f"ERROR {retries}")
-            return
-        elif e == "failure":
-            retries += 1
-            if retries > max_retries:
-                print(f"FAILED {max_retries}")
+    try:
+        max_tries = int(sys.stdin.readline().strip())
+        event_queue = list(map(str, sys.stdin.readline().strip().split()))
+        try_times = 0
+        for event in event_queue:
+            if event == "success":
+                print(f"SUCCESS {try_times}")
                 return
+            elif event == "failure":
+                if try_times + 1 > max_tries:
+                    print(f"FAILED {try_times}")
+                    return
+                try_times += 1
+            elif event == "timeout":
+                print(f"ERROR {try_times}")
+                return
+        print(f"SUCCESS {try_times}")
 
-    print(f"SUCCESS {retries}")
+    except Exception:
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
     solve()
+
+
+# import sys
+
+
+# def solve():
+#     max_retries = int(sys.stdin.readline().strip())
+#     line = sys.stdin.readline().strip()
+#     events = line.split() if line else []
+
+#     retries = 0
+#     for e in events:
+#         if e == "success":
+#             print(f"SUCCESS {retries}")
+#             return
+#         elif e == "timeout":
+#             print(f"ERROR {retries}")
+#             return
+#         elif e == "failure":
+#             retries += 1
+#             if retries > max_retries:
+#                 print(f"FAILED {max_retries}")
+#                 return
+
+#     print(f"SUCCESS {retries}")
+
+
+# if __name__ == "__main__":
+#     solve()

@@ -40,24 +40,44 @@ import sys
 
 
 def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    dv, dl, df = map(int, line.split())
-    
-    # 始终读三行，根据 dim 决定是否解析
-    line_v = sys.stdin.readline().strip()
-    line_l = sys.stdin.readline().strip()
-    line_f = sys.stdin.readline().strip()
-    
-    v = list(map(float, line_v.split())) if dv > 0 and line_v else []
-    l = list(map(float, line_l.split())) if dl > 0 and line_l else []
-    f = list(map(float, line_f.split())) if df > 0 and line_f else []
-    
-    # 构建输出：标记 + 数据 + 标记 + 数据 + 标记 + 数据
-    result = [1, 0, 0] + v + [0, 1, 0] + l + [0, 0, 1] + f
-    print(" ".join(map(str, result)))
+    dim_v, dim_l, dim_f = map(int, sys.stdin.readline().strip().split())
+    nums_v: List[float] = list(map(float, sys.stdin.readline().strip().split()))
+    nums_l: List[float] = list(map(float, sys.stdin.readline().strip().split()))
+    nums_f: List[float] = list(map(float, sys.stdin.readline().strip().split()))
+    if dim_v != len(nums_v) or dim_l != len(nums_l) or dim_f != len(nums_f):
+        raise ValueError("数据输入错误")
+    # python里列表直接相加就是拼接
 
+    result: List[float] = [1, 0, 0] + nums_v + [0, 1, 0] + nums_l + [0, 0, 1] + nums_f
+    print(" ".join(map(str, result)))
+    print("============插桩验证已编译==========", file=sys.stderr)
+    return
 
 if __name__ == "__main__":
     solve()
+
+# import sys
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     dv, dl, df = map(int, line.split())
+    
+#     # 始终读三行，根据 dim 决定是否解析
+#     line_v = sys.stdin.readline().strip()
+#     line_l = sys.stdin.readline().strip()
+#     line_f = sys.stdin.readline().strip()
+    
+#     v = list(map(float, line_v.split())) if dv > 0 and line_v else []
+#     l = list(map(float, line_l.split())) if dl > 0 and line_l else []
+#     f = list(map(float, line_f.split())) if df > 0 and line_f else []
+    
+#     # 构建输出：标记 + 数据 + 标记 + 数据 + 标记 + 数据
+#     result = [1, 0, 0] + v + [0, 1, 0] + l + [0, 0, 1] + f
+#     print(" ".join(map(str, result)))
+
+
+# if __name__ == "__main__":
+#     solve()

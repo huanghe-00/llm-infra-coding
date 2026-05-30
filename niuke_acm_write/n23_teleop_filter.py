@@ -41,31 +41,56 @@
 n=0 输出 0；max_duration 或 max_speed 为 0 时只有恰好等于的才保留；
 success 不为 0/1 时视为失败。
 """
-import sys
 
+import sys
 
 def solve():
     line = sys.stdin.readline().strip()
-    if not line:
-        return
-    n, max_dur, max_spd = line.split()
+    n, duration_ms, max_joint_speed = line.split()
     n = int(n)
-    max_dur = float(max_dur)
-    max_spd = float(max_spd)
+    duration_ms = int(duration_ms)
+    max_joint_speed = float(max_joint_speed)
 
-    kept = 0
+    valid_num: int = 0
     for _ in range(n):
-        parts = sys.stdin.readline().strip().split()
-        if len(parts) < 3:
-            continue
-        suc = int(parts[0])
-        dur = float(parts[1])
-        spd = float(parts[2])
-        if suc == 1 and dur <= max_dur and spd <= max_spd:
-            kept += 1
-
-    print(kept)
-
+        line = sys.stdin.readline().strip()
+        x, time, speed = line.split()
+        x = int(x)
+        time = int(time)
+        speed = float(speed)
+        if x == 1 and time <= duration_ms and speed <= max_joint_speed:
+            valid_num += 1
+    
+    print(valid_num)
 
 if __name__ == "__main__":
     solve()
+
+# import sys
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     n, max_dur, max_spd = line.split()
+#     n = int(n)
+#     max_dur = float(max_dur)
+#     max_spd = float(max_spd)
+
+#     kept = 0
+#     for _ in range(n):
+#         parts = sys.stdin.readline().strip().split()
+#         if len(parts) < 3:
+#             continue
+#         suc = int(parts[0])
+#         dur = float(parts[1])
+#         spd = float(parts[2])
+#         if suc == 1 and dur <= max_dur and spd <= max_spd:
+#             kept += 1
+
+#     print(kept)
+
+
+# if __name__ == "__main__":
+#     solve()

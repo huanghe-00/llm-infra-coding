@@ -33,24 +33,53 @@ OK 100.00
 多环节同为最大延迟时，按输入顺序取第一个；
 延迟为负数时取绝对值（容错）。
 """
-import sys
-
+import sys, math
 
 def solve():
-    budget = float(sys.stdin.readline().strip())
-    parts = sys.stdin.readline().strip().split()
-    names = ["vision_encode", "llm_forward", "action_gen", "control_send", "comm_round"]
+    budget_ms = float(sys.stdin.readline().strip())
+    delays: List[float] = list(map(float, sys.stdin.readline().strip().split()))
+    delay_max_idx = 0
+    delay_max = -1.0 
+    delay_total = 0.0
+    for i, delay in enumerate(delays):
+        if delay < 0:
+            delay = abs(delay)
+        delay_total += delay
+        if delay_max < delay:
+            delay_max = delay
+            delay_max_idx = i
 
-    delays = [abs(float(p)) for p in parts]
-    total = sum(delays)
-    max_delay = max(delays)
-    bottleneck = names[delays.index(max_delay)]
+    if delay_total <= budget_ms:
+        print(f"OK {delay_total:.2f}")
+        return
+    
+    name_list: List[str] = ["vision_encode", "llm_forward", "action_gen", "control_send", "comm_round"]
 
-    if total <= budget:
-        print(f"OK {total:.2f}")
-    else:
-        print(f"FAIL {total:.2f} {bottleneck}")
-
+    print(f"FAIL {delay_total:.2f} {name_list[delay_max_idx]}")
+    return
 
 if __name__ == "__main__":
-    solve()
+     solve()
+
+
+# import sys
+
+
+# def solve():
+#     budget = float(sys.stdin.readline().strip())
+#     parts = sys.stdin.readline().strip().split()
+#     names = ["vision_encode", "llm_forward", "action_gen", "control_send", "comm_round"]
+
+#     delays = [abs(float(p)) for p in parts]
+#     total = sum(delays)
+#     max_delay = max(delays)
+#     bottleneck = names[delays.index(max_delay)]
+
+#     if total <= budget:
+#         print(f"OK {total:.2f}")
+#     else:
+#         print(f"FAIL {total:.2f} {bottleneck}")
+
+
+# if __name__ == "__main__":
+#     solve()

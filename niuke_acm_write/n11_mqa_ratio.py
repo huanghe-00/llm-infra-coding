@@ -25,17 +25,29 @@
 """
 import sys
 
-
 def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    q, kv = map(int, line.split())
-    if q <= 0 or kv <= 0 or q % kv != 0:
+    num_q_heads, num_kv_heads = map(int, sys.stdin.readline().strip().split())
+    if num_q_heads <= 0 or num_kv_heads <= 0 or num_q_heads % num_kv_heads != 0:
         print("ERROR")
         return
-    print(q // kv)
-
+    print(f"{int(num_q_heads / num_kv_heads)}")
 
 if __name__ == "__main__":
     solve()
+
+# import sys
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     q, kv = map(int, line.split())
+#     if q <= 0 or kv <= 0 or q % kv != 0:
+#         print("ERROR")
+#         return
+#     print(q // kv)
+
+
+# if __name__ == "__main__":
+#     solve()

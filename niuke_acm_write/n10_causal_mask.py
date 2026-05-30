@@ -23,21 +23,35 @@ seq_len 行，每行 seq_len 个整数（0 或 1），空格分隔。
 【边界】
 seq_len >= 1；注意 Python 的 range 和列表推导式。
 """
+
 import sys
 
-
 def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    n = int(line)
-
-    for i in range(n):
-        row = []
-        for j in range(n):
-            row.append("1" if j <= i else "0")
-        print(" ".join(row))
-
+    n = int(sys.stdin.readline().strip())
+    mask = [[1 if j <= i else 0 for j in range(n)] for i in range(n)]
+    for mask_layer in mask:
+        print(" ".join(f"{x}" for x in mask_layer))
 
 if __name__ == "__main__":
     solve()
+
+
+
+# import sys
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     n = int(line)
+
+#     for i in range(n):
+#         row = []
+#         for j in range(n):
+#             row.append("1" if j <= i else "0")
+#         print(" ".join(row))
+
+
+# if __name__ == "__main__":
+#     solve()

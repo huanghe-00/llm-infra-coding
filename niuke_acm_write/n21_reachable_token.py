@@ -35,37 +35,76 @@ UNREACHABLE 或 6 个整数 Token
 R <= 0 时所有输入都 UNREACHABLE；z < 0 时 UNREACHABLE；
 恰好贴边（距离=R 且 z=0）视为 REACHABLE。
 """
-import sys
-import math
 
+import sys, math
+from typing import List
 
 def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    R = float(line)
+    R: float = float(sys.stdin.readline().strip())
+    #print(f"R:{R}", file=sys.stderr)
     x, y, z, rx, ry, rz = map(float, sys.stdin.readline().strip().split())
+    args: List[float] = [x, y, z, rx, ry, rz]
+    #print(f"x:{x} rz:{rz}", file=sys.stderr)
     
-    if R <= 0:
+    distance = math.sqrt(x * x + y * y + z * z)
+    if R <= 0 or z < 0 or distance > R:
         print("UNREACHABLE")
         return
+    #print("!!!!!!!!!!!!!!!!reach!!!!!!!!!!!!!", file=sys.stderr)
+    def encode(num: float) -> int:
+        # (num - min_val) / bin_size
+        token_idx = int((num - (-1.0)) / 2.0 * 256)
+        clipped_idx = max(0, min(token_idx, 255))
+        return clipped_idx
     
-    dist = math.sqrt(x*x + y*y + z*z)
-    if dist > R or z < 0:
-        print("UNREACHABLE")
-        return
-    
-    # 6 个维度分别 clip 到 [-1,1]，再离散化到 256 bins
-    tokens = []
-    for val in [x, y, z, rx, ry, rz]:
-        clipped = max(-1.0, min(1.0, val))
-        # 映射到 [0, 256)，然后 clip 到 [0, 255]
-        idx = int((clipped + 1.0) / 2.0 * 256)
-        idx = min(255, max(0, idx))
-        tokens.append(idx)
-    
-    print(" ".join(map(str, tokens)))
-
+    result = [encode(arg) for arg in args]
+    # print(f"{result}")
+    # for res in result:
+    #     print(f"{res} ", end='')
+    print(" ".join(map(str, result)))
+    return
 
 if __name__ == "__main__":
     solve()
+
+
+
+
+
+
+
+
+# import sys
+# import math
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     R = float(line)
+#     x, y, z, rx, ry, rz = map(float, sys.stdin.readline().strip().split())
+    
+#     if R <= 0:
+#         print("UNREACHABLE")
+#         return
+    
+#     dist = math.sqrt(x*x + y*y + z*z)
+#     if dist > R or z < 0:
+#         print("UNREACHABLE")
+#         return
+    
+#     # 6 个维度分别 clip 到 [-1,1]，再离散化到 256 bins
+#     tokens = []
+#     for val in [x, y, z, rx, ry, rz]:
+#         clipped = max(-1.0, min(1.0, val))
+#         # 映射到 [0, 256)，然后 clip 到 [0, 255]
+#         idx = int((clipped + 1.0) / 2.0 * 256)
+#         idx = min(255, max(0, idx))
+#         tokens.append(idx)
+    
+#     print(" ".join(map(str, tokens)))
+
+
+# if __name__ == "__main__":
+#     solve()

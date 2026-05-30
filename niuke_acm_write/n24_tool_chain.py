@@ -35,37 +35,78 @@ move
 已执行列表含非法工具 -> ERROR。
 """
 import sys
-
+from typing import List, Dict 
 
 def solve():
-    task = sys.stdin.readline().strip()
-    line2 = sys.stdin.readline().strip()
-    executed = line2.split() if line2 else []
-
-    chains = {
+    tool_chain: Dict[str, List[str]] = {
         "pick_place": ["perceive", "grasp", "move", "release"],
         "open_drawer": ["perceive", "approach", "pull"],
         "push_button": ["perceive", "approach", "press"],
         "sort_objects": ["perceive", "classify", "grasp", "move", "release"],
     }
 
-    if task not in chains:
+    task_type = sys.stdin.readline().strip()
+    tool_executed:List[str] = list(map(str, sys.stdin.readline().strip().split()))
+    tool_act_list = tool_chain.get(task_type)
+
+    if tool_act_list is None:
         print("UNKNOWN_TASK")
         return
 
-    chain = chains[task]
+    if len(tool_executed) > len(tool_act_list):
+        print("ERROR")
+        return
 
-    # 校验已执行列表是否匹配前缀
-    for i, tool in enumerate(executed):
-        if i >= len(chain) or chain[i] != tool:
+    for i, task in enumerate(tool_act_list):
+        if i >= len(tool_executed):
+            break
+        if tool_executed[i] != task:
             print("ERROR")
             return
-
-    if len(executed) >= len(chain):
+    
+    if (len(tool_executed) == len(tool_act_list)):
         print("DONE")
     else:
-        print(chain[len(executed)])
-
+        print(tool_act_list[len(tool_executed)])
+    # print("============插桩验证已编译==========", file=sys.stderr)
+    return
 
 if __name__ == "__main__":
     solve()
+
+
+# import sys
+
+
+# def solve():
+#     task = sys.stdin.readline().strip()
+#     line2 = sys.stdin.readline().strip()
+#     executed = line2.split() if line2 else []
+
+#     chains = {
+#         "pick_place": ["perceive", "grasp", "move", "release"],
+#         "open_drawer": ["perceive", "approach", "pull"],
+#         "push_button": ["perceive", "approach", "press"],
+#         "sort_objects": ["perceive", "classify", "grasp", "move", "release"],
+#     }
+
+#     if task not in chains:
+#         print("UNKNOWN_TASK")
+#         return
+
+#     chain = chains[task]
+
+#     # 校验已执行列表是否匹配前缀
+#     for i, tool in enumerate(executed):
+#         if i >= len(chain) or chain[i] != tool:
+#             print("ERROR")
+#             return
+
+#     if len(executed) >= len(chain):
+#         print("DONE")
+#     else:
+#         print(chain[len(executed)])
+
+
+# if __name__ == "__main__":
+#     solve()
