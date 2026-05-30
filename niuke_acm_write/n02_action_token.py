@@ -30,42 +30,26 @@ bins 为 256 时，idx 必须在 [0, 255]。
 
 import sys
 
-def solve:
+def solve():
     line = sys.stdin.readline().strip()
     if not line:
         return
     parts = line.split()
     action_val, min_val, max_val = map(float, parts[:3])
     bins = int(parts[3])
-    
 
-
-
-
-
-
-
-import sys
-
-
-def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    parts = line.split()
-    val, min_v, max_v = map(float, parts[:3])
-    bins = int(parts[3])
-
-    # TODO: clip -> bin -> int -> boundary protect
-    clipped = max(min_v, min(val, max_v))
-    if max_v == min_v:
+    if max_val == min_val:
         print(0)
         return
-    bin_size = (max_v - min_v) / bins
-    idx = int((clipped - min_v) / bin_size)
-    idx = min(idx, bins - 1)
-    print(idx)
+    if bins == 0:
+        print(0)
+        return
 
+    bin_size = (max_val - min_val) / bins
+    clipped = max(min_val, min(action_val, max_val))
+    token = int((clipped - min_val) / bin_size)
+    token = min(token, bins - 1)
+    print(token)
 
 if __name__ == "__main__":
     solve()

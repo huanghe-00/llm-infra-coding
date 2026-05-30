@@ -23,27 +23,52 @@ theta_i = 10000 ^ (-2*i/dim)，其中 i = 0, 1, ..., dim/2-1
 【边界】
 dim 为偶数且 >= 2；pos >= 0。
 """
-import sys
-import math
+
+import sys, math
 
 
 def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    pos, dim = map(int, line.split())
-    
-    res = []
-    for i in range(0, dim, 2):
-        # i 是 pair index，对应维度 2i 和 2i+1
-        pair_idx = i // 2
-        theta = math.pow(10000.0, -2.0 * pair_idx / dim)
-        val_sin = math.sin(pos * theta)
-        val_cos = math.cos(pos * theta)
-        res.append(f"{val_sin:.4f}")
-        res.append(f"{val_cos:.4f}")
-    print(" ".join(res))
-
+    try:
+        # pos -- query序列含历史的绝对idx
+        # dim -- Q 矩阵的维度
+        pos, dim = map(int, sys.stdin.readline().strip().split())
+        assert dim % 2 == 0
+        # sin cos成对，因此i+2步进
+        rope: List[float] = []
+        for i in range(0, dim, 2):
+            print(f"{i}", file=sys.stderr)
+            θ_i = 10000 ** (-i / dim)
+            rope.append(math.sin(pos * θ_i))
+            rope.append(math.cos(pos * θ_i))
+        print(" ".join(f"{x:.4f}" for x in rope))
+    except Exception:
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     solve()
+
+# import sys
+# import math
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     pos, dim = map(int, line.split())
+    
+#     res = []
+#     for i in range(0, dim, 2):
+#         # i 是 pair index，对应维度 2i 和 2i+1
+#         pair_idx = i // 2
+#         theta = math.pow(10000.0, -2.0 * pair_idx / dim)
+#         val_sin = math.sin(pos * theta)
+#         val_cos = math.cos(pos * theta)
+#         res.append(f"{val_sin:.4f}")
+#         res.append(f"{val_cos:.4f}")
+#     print(" ".join(res))
+
+
+# if __name__ == "__main__":
+#     solve()

@@ -28,27 +28,50 @@ req_b req_c req_a
 【边界】
 max_batch 可能 >= n（全选）；priority 可能相同；req_id 无空格。
 """
-import sys
 
+import sys, math
 
 def solve():
-    line = sys.stdin.readline().strip()
-    if not line:
-        return
-    n, max_batch = map(int, line.split())
+    try:
+        n, max_batch = map(int, sys.stdin.readline().strip().split())
+        require_list: List[List[str, int]] = []
+        for i in range(n):
+            require, priority = sys.stdin.readline().strip().split()
+            require_list.append([int(priority), i, require])
+        require_list.sort(key=lambda x: (x[0], x[1]))
+        require_out = require_list[:max_batch]
+        print(" ".join(f"{x}" for _, _, x in require_out))
 
-    reqs = []
-    for i in range(n):
-        rid, pri = sys.stdin.readline().strip().split()
-        reqs.append((int(pri), i, rid))  # (priority, original_index, id)
-
-    # 排序：priority 升序，同优先级按原始索引升序（稳定）
-    reqs.sort(key=lambda x: (x[0], x[1]))
-
-    k = min(max_batch, n)
-    result = [reqs[i][2] for i in range(k)]
-    print(" ".join(result))
-
+    except Exception:
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     solve()
+
+
+
+# import sys
+
+
+# def solve():
+#     line = sys.stdin.readline().strip()
+#     if not line:
+#         return
+#     n, max_batch = map(int, line.split())
+
+#     reqs = []
+#     for i in range(n):
+#         rid, pri = sys.stdin.readline().strip().split()
+#         reqs.append((int(pri), i, rid))  # (priority, original_index, id)
+
+#     # 排序：priority 升序，同优先级按原始索引升序（稳定）
+#     reqs.sort(key=lambda x: (x[0], x[1]))
+
+#     k = min(max_batch, n)
+#     result = [reqs[i][2] for i in range(k)]
+#     print(" ".join(result))
+
+
+# if __name__ == "__main__":
+#     solve()

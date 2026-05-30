@@ -14,7 +14,7 @@
 【输入】
 第一行：max_batch_size
 第二行：当前 batch 剩余 tokens（空格分隔，可能为空行表示 batch 空）
-第三行：等待队列 prompt_lens（空格分隔，可能为空行）
+第三行：等待队列 prompt_wait_list（空格分隔，可能为空行）
 
 【输出】
 一行，空格分隔的整数（剩余 tokens），按请求在 batch 中的顺序。
@@ -39,29 +39,50 @@ import sys
 
 
 def solve():
-    max_batch = int(sys.stdin.readline().strip())
+    max_batch_size = int(sys.stdin.readline().strip())
+    batch_list: List[int] = list(map(int, sys.stdin.readline().strip().split()))
+    prompt_wait_list: List[int] = list(map(int, sys.stdin.readline().strip().split()))
 
-    line2 = sys.stdin.readline().strip()
-    batch = list(map(int, line2.split())) if line2 else []
-
-    line3 = sys.stdin.readline().strip()
-    waiting = list(map(int, line3.split())) if line3 else []
-
-    # Step 1: batch内全部-1
-    batch = [x - 1 for x in batch]
-    # Step 2: 移除<=0的
-    batch = [x for x in batch if x > 0]
-
-    # Step 3: 从waiting补充，直到batch满
-    while len(batch) < max_batch and waiting:
-        new_req = waiting.pop(0)
-        batch.append(new_req - 1)  # 新加入的立即-1
-
-    if batch:
-        print(" ".join(map(str, batch)))
-    else:
-        print()
-
+    # 模拟一次step
+    batch_list_next = [x - 1 for x in batch_list]
+    batch_list_filter = [x for x in batch_list_next if x > 0]
+    while len(batch_list_filter) < max_batch_size and prompt_wait_list:
+        new_token = prompt_wait_list.pop(0)
+        batch_list_filter.append(new_token - 1)
+    print(" ".join(f"{token}" for token in batch_list_filter))
 
 if __name__ == "__main__":
     solve()
+
+
+
+# import sys
+
+
+# def solve():
+#     max_batch = int(sys.stdin.readline().strip())
+
+#     line2 = sys.stdin.readline().strip()
+#     batch = list(map(int, line2.split())) if line2 else []
+
+#     line3 = sys.stdin.readline().strip()
+#     waiting = list(map(int, line3.split())) if line3 else []
+
+#     # Step 1: batch内全部-1
+#     batch = [x - 1 for x in batch]
+#     # Step 2: 移除<=0的
+#     batch = [x for x in batch if x > 0]
+
+#     # Step 3: 从waiting补充，直到batch满
+#     while len(batch) < max_batch and waiting:
+#         new_req = waiting.pop(0)
+#         batch.append(new_req - 1)  # 新加入的立即-1
+
+#     if batch:
+#         print(" ".join(map(str, batch)))
+#     else:
+#         print()
+
+
+# if __name__ == "__main__":
+#     solve()

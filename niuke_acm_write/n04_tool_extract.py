@@ -19,32 +19,29 @@
 输入字符串可能单引号或双引号，用 ast.literal_eval 或 eval 安全解析；
 字段缺失严格判断（大小写敏感）。
 """
-import sys
-import ast
-
+import sys, ast
 
 def solve():
-    line1 = sys.stdin.readline().strip()
-    line2 = sys.stdin.readline().strip()
-    if not line1 or not line2:
+    json_str = sys.stdin.readline().strip()
+    if not json_str:
         return
-
     try:
-        # 安全解析 dict（牛客网一般允许 ast）
-        data = ast.literal_eval(line1)
+        args = ast.literal_eval(json_str)
     except Exception:
         print("ERROR")
         return
 
-    required = line2.split()
+    print(f"args:{args}", file=sys.stderr)
+    required_line = sys.stdin.readline().strip()
+    print(f"required_line:{required_line}", file=sys.stderr)
+    required: List[str] = list(map(str, required_line.split()))
     result = []
     for key in required:
-        if key not in data:
+        if key not in args:
             print("ERROR")
             return
-        result.append(f"{key}={data[key]}")
-    print(",".join(result))
-
+        result.append(f"{key}={args[key]}")
+    print(",".join(result))  # ("分隔内容".join(可迭代对象))
 
 if __name__ == "__main__":
     solve()

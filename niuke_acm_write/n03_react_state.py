@@ -31,14 +31,16 @@ ACT
 输入可能包含首尾空格，需 strip；
 未定义事件时输出当前状态（不是 ERROR）。
 """
-import sys
 
+import sys
 
 def solve():
     state = sys.stdin.readline().strip()
     event = sys.stdin.readline().strip()
+    print(f"输入是 {state}, {event}", file=sys.stderr)
+    if not state or not event:
+        return
 
-    # 状态转换表：用字典或 if/elif
     if state == "IDLE" and event == "start":
         print("THINK")
     elif state == "THINK" and event == "act":
